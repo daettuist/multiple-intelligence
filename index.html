@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>나의 다중지능 검사</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Noto+Sans+KR:wght@400;500;700&display=swap');
+
+:root {
+  --bg: #FFF9F0;
+  --text: #2d2d2d;
+  --muted: #888;
+  --radius: 20px;
+  --shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Noto Sans KR', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 20px;
+}
+.app { width: 100%; max-width: 680px; }
+.screen { display: none; animation: fadeIn 0.4s ease; }
+.screen.active { display: block; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+
+/* ─── 인트로 ─── */
+.intro-wrap { text-align: center; padding: 32px 20px 20px; }
+.intro-person { margin: 0 auto 20px; width: 110px; height: 110px; }
+.intro-title {
+  font-family: 'Gaegu', cursive;
+  font-size: 40px; font-weight: 700;
+  line-height: 1.2; margin-bottom: 12px;
+}
+.intro-sub {
+  font-size: 15px; color: var(--muted);
+  margin-bottom: 28px; line-height: 1.7;
+}
+
+/* ① 4×2 그리드 배지 */
+.badges {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 32px;
+}
+.badge {
+  padding: 10px 6px;
+  border-radius: 12px;
+  font-size: 12px; font-weight: 700;
+  color: #fff; text-align: center;
+  line-height: 1.6;
+}
+
+.btn-start {
+  background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+  color: white; border: none;
+  padding: 18px 48px; border-radius: 999px;
+  font-size: 20px; font-family: 'Gaegu', cursive; font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(255,107,107,.35);
+  transition: transform .15s, box-shadow .15s;
+}
+.btn-start:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(255,107,107,.4); }
+.btn-start:active { transform: scale(.97); }
+
+.info-cards {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 14px; margin-top: 32px;
+}
+.info-card {
+  background: white; border-radius: 16px;
+  padding: 18px 12px; text-align: center;
+  box-shadow: var(--shadow);
+}
+.info-card .ic-emoji { font-size: 28px; margin-bottom: 8px; }
+.info-card .ic-title { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+.info-card .ic-desc { font-size: 11px; color: var(--muted); line-height: 1.5; }
+
+/* ─── 진행바 ─── */
+.progress-area { padding: 20px 0 0; }
+.progress-label {
+  font-size: 13px; color: var(--muted);
+  margin-bottom: 6px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.prog-left { font-size: 13px; color: var(--muted); }
+.prog-left strong { color: var(--text); font-size: 15px; }
+.prog-right { color: #FF6B6B; font-weight: 700; font-size: 13px; }
+.progress-bar-wrap {
+  background: #eee; border-radius: 999px;
+  height: 10px; margin-bottom: 20px; overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%; border-radius: 999px;
+  background: linear-gradient(90deg, #FF6B6B, #FF8E53);
+  transition: width .4s ease;
+}
+
+/* ─── 문항 카드 ─── */
+.question-card {
+  background: white; border-radius: 16px;
+  padding: 22px 20px; margin-bottom: 16px;
+  box-shadow: 0 2px 12px rgba(0,0,0,.06);
+}
+.question-meta {
+  display: flex; align-items: center;
+  gap: 8px; margin-bottom: 14px;
+}
+.q-domain-badge {
+  padding: 5px 14px; border-radius: 999px;
+  font-size: 12px; font-weight: 700; color: white;
+}
+.question-text {
+  font-size: 15px; font-weight: 500;
+  margin-bottom: 20px; line-height: 1.7;
+}
+
+/* ⑦ 척도 버튼 */
+.score-btns { display: flex; gap: 6px; }
+.score-btn {
+  flex: 1; padding: 10px 2px;
+  border: 2px solid #eee; border-radius: 12px;
+  background: white; cursor: pointer;
+  transition: all .15s;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 4px;
+  color: var(--muted);
+}
+.score-btn .s-num {
+  font-size: 18px;
+  font-family: 'Gaegu', cursive; font-weight: 700;
+}
+.score-btn .s-txt { font-size: 9px; line-height: 1.3; text-align: center; word-break: keep-all; }
+.score-btn:hover { border-color: #FF6B6B; color: #FF6B6B; }
+.score-btn.selected { color: white; }
+
+/* ⑥ 이전/다음 */
+.nav-row { display: flex; gap: 12px; margin-top: 20px; margin-bottom: 30px; }
+.btn-prev {
+  padding: 14px 24px; border-radius: 999px;
+  border: 2px solid #ddd; background: white;
+  font-size: 15px; font-weight: 700;
+  cursor: pointer; color: var(--muted);
+  transition: all .15s; white-space: nowrap;
+}
+.btn-prev:hover:not(:disabled) { border-color: #aaa; color: var(--text); }
+.btn-prev:disabled { opacity: .3; cursor: not-allowed; }
+.btn-next {
+  flex: 1; padding: 14px;
+  border-radius: 999px; border: none;
+  background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+  color: white; font-size: 16px; font-weight: 700;
+  font-family: 'Gaegu', cursive; cursor: pointer;
+  box-shadow: 0 4px 16px rgba(255,107,107,.3);
+  transition: all .15s;
+}
+.btn-next:hover:not(:disabled) { transform: translateY(-1px); }
+.btn-next:disabled { background: #ddd; box-shadow: none; color: #aaa; cursor: not-allowed; transform: none; }
+
+/* ─── 결과 ─── */
+.result-header { text-align: center; padding: 32px 20px 24px; }
+.result-title { font-family: 'Gaegu', cursive; font-size: 32px; font-weight: 700; margin-bottom: 6px; }
+.result-sub { font-size: 14px; color: var(--muted); }
+.character-card {
+  background: white; border-radius: var(--radius);
+  padding: 28px 24px; margin-bottom: 16px;
+  box-shadow: var(--shadow); text-align: center;
+}
+.char-svg-wrap { margin: 0 auto 16px; width: 140px; height: 140px; }
+.char-svg-wrap svg { width: 100%; height: 100%; }
+.char-nickname { font-family: 'Gaegu', cursive; font-size: 30px; font-weight: 700; margin-bottom: 8px; }
+.char-combo-tags { display: flex; gap: 8px; justify-content: center; margin-bottom: 14px; }
+.char-tag { padding: 5px 14px; border-radius: 999px; font-size: 12px; font-weight: 700; color: white; }
+.char-desc { font-size: 14px; color: #555; line-height: 1.8; }
+.people-row { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; margin-top: 16px; }
+.person-chip {
+  background: #f8f8f8; border-radius: 12px;
+  padding: 10px 12px; display: flex; align-items: center; gap: 8px;
+}
+.person-chip .p-icon { font-size: 20px; }
+.person-chip .p-name { font-weight: 700; font-size: 13px; }
+.person-chip .p-role { color: var(--muted); font-size: 11px; }
+.chart-card {
+  background: white; border-radius: var(--radius);
+  padding: 24px; margin-bottom: 16px; box-shadow: var(--shadow);
+}
+.chart-card h3 { font-family: 'Gaegu', cursive; font-size: 20px; margin-bottom: 16px; text-align: center; }
+.chart-wrap { position: relative; height: 280px; }
+.scores-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-top: 16px; }
+.score-chip { background: #f8f8f8; border-radius: 14px; padding: 12px 8px; text-align: center; }
+.score-chip .sc-emoji { font-size: 20px; margin-bottom: 4px; }
+.score-chip .sc-name { font-size: 11px; font-weight: 700; margin-bottom: 4px; }
+.score-chip .sc-score { font-size: 18px; font-weight: 700; font-family: 'Gaegu', cursive; }
+.score-chip.top { border: 2px solid #FF6B6B; background: #fff5f5; }
+.share-row { display: flex; gap: 10px; margin-top: 8px; margin-bottom: 16px; }
+.btn-save-img {
+  flex: 1; padding: 16px; border-radius: 999px; border: none;
+  background: linear-gradient(135deg, #43C6AC, #191654);
+  color: white; font-size: 16px; font-weight: 700;
+  font-family: 'Gaegu', cursive; cursor: pointer;
+  box-shadow: 0 4px 16px rgba(67,198,172,.35);
+  transition: all .15s;
+}
+.btn-save-img:hover { transform: translateY(-2px); }
+.btn-retry {
+  width: 100%; padding: 18px; border-radius: 999px; border: none;
+  background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+  color: white; font-size: 18px; font-weight: 700;
+  font-family: 'Gaegu', cursive; cursor: pointer;
+  margin-bottom: 40px;
+  box-shadow: 0 6px 20px rgba(255,107,107,.35);
+  transition: all .15s;
+}
+.btn-retry:hover { transform: translateY(-2px); }
+/* 이미지 저장용 공유 카드 */
+#share-card {
+  position: fixed; left: -9999px; top: 0;
+  width: 360px; background: #FFF9F0;
+  padding: 32px 24px; font-family: 'Noto Sans KR', sans-serif;
+}
+#share-card .sc-title {
+  font-family: 'Gaegu', cursive; font-size: 28px; font-weight: 700;
+  text-align: center; margin-bottom: 4px;
+}
+#share-card .sc-sub {
+  text-align: center; font-size: 13px; color: #888; margin-bottom: 20px;
+}
+#share-card .sc-nick {
+  font-family: 'Gaegu', cursive; font-size: 26px; font-weight: 700;
+  text-align: center; margin: 12px 0 6px;
+}
+#share-card .sc-desc {
+  font-size: 13px; color: #555; line-height: 1.7;
+  text-align: center; margin-bottom: 20px;
+}
+#share-card .sc-tags {
+  display: flex; gap: 8px; justify-content: center; margin-bottom: 20px;
+}
+#share-card .sc-tag {
+  padding: 5px 14px; border-radius: 999px;
+  font-size: 12px; font-weight: 700; color: white;
+}
+#share-card .sc-bars { margin-bottom: 16px; }
+#share-card .sc-bar-row {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 7px;
+}
+#share-card .sc-bar-label { font-size: 11px; font-weight: 700; width: 52px; flex-shrink: 0; }
+#share-card .sc-bar-bg {
+  flex: 1; height: 12px; background: #eee; border-radius: 999px; overflow: hidden;
+}
+#share-card .sc-bar-fill { height: 100%; border-radius: 999px; }
+#share-card .sc-bar-score { font-size: 11px; font-weight: 700; width: 36px; text-align: right; flex-shrink: 0; }
+#share-card .sc-footer {
+  text-align: center; font-size: 11px; color: #bbb; margin-top: 16px;
+}
+.section-divider {
+  text-align: center; font-size: 13px; color: var(--muted);
+  margin: 6px 0 14px; font-weight: 700; letter-spacing: 1px;
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ════ 인트로 ════ -->
+<div class="screen active" id="screen-intro">
+  <div class="intro-wrap">
+
+    <!-- ② 사람 SVG 1명 -->
+    <div class="intro-person">
+      <svg viewBox="0 0 110 110" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="55" cy="30" r="22" fill="#FDDCAE"/>
+        <ellipse cx="55" cy="12" rx="20" ry="11" fill="#5D4037"/>
+        <rect x="35" y="12" width="8" height="14" rx="4" fill="#5D4037"/>
+        <rect x="67" y="12" width="8" height="14" rx="4" fill="#5D4037"/>
+        <circle cx="47" cy="28" r="4" fill="white"/>
+        <circle cx="63" cy="28" r="4" fill="white"/>
+        <circle cx="47" cy="28" r="2.2" fill="#3a3a3a"/>
+        <circle cx="63" cy="28" r="2.2" fill="#3a3a3a"/>
+        <circle cx="48" cy="27" r="0.9" fill="white"/>
+        <circle cx="64" cy="27" r="0.9" fill="white"/>
+        <path d="M48 37 Q55 43 62 37" stroke="#c07050" stroke-width="2" fill="none" stroke-linecap="round"/>
+        <rect x="34" y="53" width="42" height="34" rx="15" fill="#FF6B6B"/>
+        <rect x="14" y="57" width="20" height="11" rx="5.5" fill="#FF6B6B"/>
+        <circle cx="12" cy="62" r="6" fill="#FDDCAE"/>
+        <rect x="76" y="57" width="20" height="11" rx="5.5" fill="#FF6B6B"/>
+        <circle cx="98" cy="62" r="6" fill="#FDDCAE"/>
+        <rect x="38" y="87" width="14" height="20" rx="7" fill="#FF6B6B"/>
+        <rect x="58" y="87" width="14" height="20" rx="7" fill="#FF6B6B"/>
+        <circle cx="33" cy="31" r="5" fill="#FDDCAE"/>
+        <circle cx="77" cy="31" r="5" fill="#FDDCAE"/>
+      </svg>
+    </div>
+
+    <div class="intro-title">나의 다중지능<br>검사</div>
+    <div class="intro-sub">
+      하워드 가드너의 8가지 다중지능 이론을 바탕으로<br>
+      나만의 강점 지능을 발견해 보세요!
+    </div>
+
+    <!-- ① 4×2 그리드 (언어/논리수학/신체운동/음악 | 공간/자연/자기성찰/인간친화) -->
+    <div class="badges">
+      <span class="badge" style="background:#FF6B6B">🗣<br>언어</span>
+      <span class="badge" style="background:#4ECDC4">🔢<br>논리수학</span>
+      <span class="badge" style="background:#45B7D1">🏃<br>신체운동</span>
+      <span class="badge" style="background:#96CEB4">🎵<br>음악</span>
+      <span class="badge" style="background:#E8A87C">🗺<br>공간</span>
+      <span class="badge" style="background:#DDA0DD">🌿<br>자연</span>
+      <span class="badge" style="background:#98D8C8; color:#444">🪞<br>자기성찰</span>
+      <span class="badge" style="background:#D4AC0D">🤝<br>인간친화</span>
+    </div>
+
+    <button class="btn-start" onclick="startTest()">검사 시작하기 →</button>
+
+    <div class="info-cards">
+      <div class="info-card">
+        <div class="ic-emoji">📝</div>
+        <div class="ic-title">56문항</div>
+        <div class="ic-desc">8개 영역<br>각 7문항</div>
+      </div>
+      <div class="info-card">
+        <div class="ic-emoji">⏱</div>
+        <div class="ic-title">약 10분</div>
+        <div class="ic-desc">솔직하게<br>답해주세요</div>
+      </div>
+      <div class="info-card">
+        <div class="ic-emoji">🎭</div>
+        <div class="ic-title">28가지 캐릭터</div>
+        <div class="ic-desc">나만의<br>별명 발견</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ 검사 ════ -->
+<div class="screen" id="screen-test">
+  <div class="progress-area">
+    <!-- ④ 진도율 N / 56 -->
+    <div class="progress-label">
+      <span class="prog-left">진도율 <strong id="prog-cur">1</strong> / 56</span>
+      <span class="prog-right" id="prog-pct">0%</span>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" id="prog-fill" style="width:0%"></div>
+    </div>
+
+    <!-- ⑤ 섹션 헤더 없음 -->
+    <div id="question-content"></div>
+
+    <!-- ⑥ 이전/다음 -->
+    <div class="nav-row">
+      <button class="btn-prev" id="btn-prev" onclick="prevQ()">← 이전</button>
+      <button class="btn-next" id="btn-next" onclick="nextQ()">다음 →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════ 결과 ════ -->
+<div class="screen" id="screen-result">
+  <div class="result-header">
+    <div class="result-title">🎉 결과가 나왔어요!</div>
+    <div class="result-sub">나만의 강점 지능 조합을 확인해보세요</div>
+  </div>
+  <div id="result-content"></div>
+  <button class="btn-retry" onclick="resetTest()">🔄 다시 검사하기</button>
+</div>
+
+</div>
+
+<script>
+/* ══ 상수 정의 먼저 ══ */
+const KEYS  = ['A','B','C','D','E','F','G','H'];
+const TOTAL = 56; // 8 영역 × 7 문항
+
+const KEY_COLORS = {
+  A:'#FF6B6B', B:'#4ECDC4', C:'#45B7D1', D:'#96CEB4',
+  E:'#E8A87C', F:'#DDA0DD', G:'#98D8C8', H:'#D4AC0D'
+};
+
+/* ⑦ 척도 라벨 */
+const SCORE_LABELS = ['전혀\n아니다', '아니다', '보통이다', '그렇다', '매우\n그렇다'];
+
+const SECTIONS = [
+  { key:'A', name:'언어 지능', emoji:'🗣', color:'#FF6B6B',
+    questions:[
+      '책 읽는 것을 좋아한다.',
+      '사물이나 사람의 모습을 다양하고 재미있는 말로 표현할 수 있다.',
+      '나에게 있었던 일을 주변 사람들에게 잘 이야기하는 편이다.',
+      'TV, 인터넷 등에서 접하게 된 새로운 어휘를 쉽게 기억하고 사용한다.',
+      '다른 사람들을 말로 잘 웃기는 재주가 있다.',
+      '외국어 공부가 재미있다.',
+      '설득력 있게 말하고 글을 잘 쓴다는 이야기를 듣는 편이다.'
+    ]
+  },
+  { key:'B', name:'논리수학 지능', emoji:'🔢', color:'#4ECDC4',
+    questions:[
+      '영화, 책 등의 줄거리를 조리 있게 설명할 수 있다.',
+      '물건을 살 때 계산(암산)이 빠르고 정확하다.',
+      '새로운 휴대폰이나 전자제품의 사용법을 잘 알고 쉽게 익힌다.',
+      '어려운 문제를 보면 쉽게 포기하지 않고 풀려고 끝까지 노력한다.',
+      '과학과 수학을 잘하며 좋아하는 편이다.',
+      '무작정 외우기보다 논리적으로 이해해서 암기한다.',
+      '퍼즐게임, 큐브 맞추기, 레고 조립을 좋아한다.'
+    ]
+  },
+  { key:'C', name:'신체운동 지능', emoji:'🏃', color:'#45B7D1',
+    questions:[
+      '체육대회에서 늘 상위권에 들거나 대표로 선발되는 운동이 있다.',
+      '몸을 많이 움직이는 활동을 좋아한다.',
+      '새로운 운동을 쉽게 배우는 편이다.',
+      '균형감각과 몸이 유연하다는 이야기를 자주 듣는 편이다.',
+      '텔레비전에 나오는 춤 등을 잘 따라하는 편이다.',
+      '경기를 보면서 규칙과 선수들의 장단점을 잘 파악하는 편이다.',
+      '뜨개질, 조각, 조립과 같은 손으로 하는 활동을 잘하는 편이다.'
+    ]
+  },
+  { key:'D', name:'음악 지능', emoji:'🎵', color:'#96CEB4',
+    questions:[
+      '악기를 다루거나 배우는 것을 좋아한다.',
+      '자주 노래를 흥얼거리는 편이다.',
+      '노래 잘 한다는 말을 자주 듣는 편이다.',
+      '주변의 소리에 대해 민감하다.',
+      '노래 또는 악기와 관련된 동아리나 동호회 활동을 하는 편이다.',
+      '소리를 쉽게 구별하고 음에 대한 감각이 좋은 편이다.',
+      '악보를 보면 그 곡의 멜로디를 어느 정도 알 수 있다.'
+    ]
+  },
+  { key:'E', name:'공간 지능', emoji:'🗺', color:'#E8A87C',
+    questions:[
+      '멀지 않은 위치를 설명할 때, 가는 길을 지도로 그릴 수 있다.',
+      '어려운 내용도 그림으로 그려가면서 이해한다.',
+      '조합이나 퍼즐을 즐긴다.',
+      '한 번 갔던 길을 잘 찾는 편이다.',
+      '어림짐작으로 사물 간의 크기를 쉽게 비교할 수 있다.',
+      '옷, 가방을 보면 어느 브랜드인지 바로 알아맞힌다.',
+      '처음 가보는 길도 잘 찾아가고, 지도를 보는 것을 즐긴다.'
+    ]
+  },
+  { key:'F', name:'자연 지능', emoji:'🌿', color:'#DDA0DD',
+    questions:[
+      '애완동물 기르는 것을 좋아하는 편이다.',
+      '주위의 나무, 꽃, 새 등을 관찰하고 달라진 점을 잘 알아챈다.',
+      '꽃, 동물, 곤충 등 자연생물에 대해 관심이 많고 관련된 책을 많이 읽는다.',
+      '풀꽃이나 공룡의 이름을 많이 알고 있다.',
+      '건강과 먹거리에 대하여 관심이 많다.',
+      '조개껍질, 꽃잎, 나뭇잎 등을 수집하는 것을 즐긴다.',
+      '환경문제를 해결하려는 방법을 많이 알고 있다.'
+    ]
+  },
+  { key:'G', name:'자기성찰 지능', emoji:'🪞', color:'#98D8C8',
+    questions:[
+      '일기를 꾸준히 쓰고 있다.',
+      '해야 할 일이 생겼을 때, 계획을 세우고 실천하는 편이다.',
+      '나의 장점을 다섯 가지 이상 알고 있다.',
+      '나의 직업과 하고 싶은 일을 뚜렷하게 정해놓았다.',
+      '명상이나 혼자 있는 시간을 좋아한다.',
+      '어떻게 살고자 하는 뚜렷한 신념을 갖고 있다.',
+      '학급, 동아리 등에서 내가 할 일을 먼저 찾아서 한다.'
+    ]
+  },
+  { key:'H', name:'인간친화 지능', emoji:'🤝', color:'#D4AC0D',
+    questions:[
+      '주변에 친구가 늘 북적이는 편이다.',
+      '친구, 부모님의 기분을 잘 파악하고 적절하게 대처한다.',
+      '대표나 임원으로 자주 선출되었다.',
+      '열심히 참여하는 모임이나 동아리가 있다.',
+      '친구의 고민을 잘 들어주고, 문제를 해결해 주는 것을 좋아한다.',
+      '다른 사람과 협동하는 것에 익숙하고 능숙하다.',
+      '리더십이 있다는 말을 자주 듣는 편이다.'
+    ]
+  }
+];
+
+const MI_INFO = {
+  A:{ name:'언어 지능', desc:'말재주와 글 솜씨로 세상을 이해하고 만드는 능력이에요. 이야기를 통해 사람들의 마음을 움직이고, 생각을 설득력 있게 전달하는 데 뛰어나요.',
+      people:[{icon:'✍️',name:'J.K. 롤링',role:'해리포터 작가'},{icon:'🎤',name:'오바마',role:'최고의 연설가'},{icon:'🎙',name:'유재석',role:'국민 MC'},{icon:'📚',name:'이말년',role:'웹툰 스토리텔러'}] },
+  B:{ name:'논리수학 지능', desc:'숫자, 규칙, 논리적 사고로 문제를 해결하는 능력이에요. 복잡한 상황도 체계적으로 분석하고, 창의적인 방법으로 답을 찾아내요.',
+      people:[{icon:'🔭',name:'스티븐 호킹',role:'물리학자'},{icon:'💻',name:'앨런 튜링',role:'컴퓨터 과학자'},{icon:'🏅',name:'허준이',role:'필즈상 수학자'},{icon:'🔬',name:'김상욱',role:'물리학 대중화'}] },
+  C:{ name:'신체운동 지능', desc:'몸을 통해 배우고 표현하는 능력이에요. 운동, 춤, 손재주 등을 통해 뛰어난 퍼포먼스를 발휘하고, 몸의 감각을 섬세하게 조절할 수 있어요.',
+      people:[{icon:'🏀',name:'르브론 제임스',role:'NBA 레전드'},{icon:'🤸',name:'시몬 바일스',role:'체조 황제'},{icon:'⚽',name:'손흥민',role:'EPL 스타'},{icon:'⛸',name:'김연아',role:'피겨 여왕'}] },
+  D:{ name:'음악 지능', desc:'음과 박자를 느끼고 창조하는 능력이에요. 멜로디를 쉽게 기억하고, 소리의 미묘한 차이를 감지하며, 감동적인 음악을 만들어낼 수 있어요.',
+      people:[{icon:'🎼',name:'베토벤',role:'클래식 작곡가'},{icon:'🎤',name:'비욘세',role:'팝 슈퍼스타'},{icon:'🎵',name:'아이유',role:'싱어송라이터'},{icon:'🌟',name:'BTS',role:'글로벌 아이콘'}] },
+  E:{ name:'공간 지능', desc:'도형, 그림, 지도를 통해 세상을 이해하는 능력이에요. 공간을 머릿속에서 자유롭게 구성하고, 시각적으로 아름다운 것을 창조해요.',
+      people:[{icon:'🏛',name:'자하 하디드',role:'건축의 여왕'},{icon:'🎨',name:'레오나르도 다빈치',role:'르네상스 천재'},{icon:'🎬',name:'봉준호',role:'영화 감독'},{icon:'🏠',name:'유현준',role:'건축가'}] },
+  F:{ name:'자연 지능', desc:'자연환경을 인식하고 탐구하는 능력이에요. 동식물과 자연현상에 깊은 관심을 갖고, 생태계의 다양성과 아름다움을 발견해요.',
+      people:[{icon:'🦒',name:'제인 구달',role:'침팬지 연구자'},{icon:'🐦',name:'찰스 다윈',role:'진화론 창시자'},{icon:'🔬',name:'최재천',role:'생태학자'},{icon:'🌊',name:'김병엽',role:'해양생물학자'}] },
+  G:{ name:'자기성찰 지능', desc:'자신의 심리와 정서를 파악하고 표현하는 능력이에요. 내면의 강점과 약점을 명확히 알고, 자신만의 삶의 방향을 찾아가요.',
+      people:[{icon:'🧠',name:'칼 융',role:'분석심리학자'},{icon:'💡',name:'아들러',role:'개인심리학자'},{icon:'🪷',name:'법정스님',role:'성찰의 아이콘'},{icon:'📖',name:'김혜남',role:'정신과 의사·작가'}] },
+  H:{ name:'인간친화 지능', desc:'사람들과 잘 어울리고 이끄는 능력이에요. 타인의 감정을 잘 이해하고, 자연스럽게 리더십을 발휘하며 공동체를 하나로 묶어요.',
+      people:[{icon:'🕊',name:'넬슨 만델라',role:'화합의 지도자'},{icon:'📺',name:'오프라 윈프리',role:'공감의 아이콘'},{icon:'🏥',name:'이태석 신부',role:'한국의 슈바이처'},{icon:'🌍',name:'한비야',role:'구호활동가'}] }
+};
+
+const COMBOS = {
+  'AB':{nick:'논리적 이야기꾼',desc:'탄탄한 논리와 뛰어난 언어 능력을 가진 당신! 복잡한 것도 쉽고 재미있게 설명하는 천재예요.'},
+  'AC':{nick:'열정 스토리텔러',desc:'몸으로 말하는 이야기꾼! 생생한 표현과 에너지로 주변을 사로잡아요.'},
+  'AD':{nick:'감성 시인',desc:'언어와 음악을 넘나드는 감성가! 아름다운 말과 선율로 마음을 두드려요.'},
+  'AE':{nick:'상상 작가',desc:'풍부한 상상력과 언어 능력의 만남! 머릿속 세계를 글로 펼쳐내는 창조자예요.'},
+  'AF':{nick:'자연 탐험가',desc:'자연 속 이야기꾼! 자연의 경이로움을 감동적인 말로 전달해요.'},
+  'AG':{nick:'철학자',desc:'깊은 사색과 탁월한 언어 능력! 세상의 본질을 꿰뚫는 현자예요.'},
+  'AH':{nick:'소통 마스터',desc:'말로 세상을 이어주는 연결자! 누구와도 금방 친해지는 소통의 달인이에요.'},
+  'BC':{nick:'전략가',desc:'두뇌와 몸을 함께 쓰는 전략가! 치밀한 계획으로 경쟁에서 앞서 나가요.'},
+  'BD':{nick:'음악 과학자',desc:'음악 속 수학을 발견하는 천재! 규칙과 패턴으로 아름다운 음악을 분석해요.'},
+  'BE':{nick:'설계 천재',desc:'논리적 사고와 공간 감각의 완벽한 조화! 세상을 설계하는 건축가예요.'},
+  'BF':{nick:'자연 과학자',desc:'자연의 비밀을 수식으로 풀어내는 탐구자! 생태계의 법칙을 찾아요.'},
+  'BG':{nick:'내면 탐구자',desc:'자기 자신을 과학적으로 분석하는 탐구자! 논리로 내면을 들여다봐요.'},
+  'BH':{nick:'분석형 리더',desc:'데이터와 사람을 함께 이해하는 리더! 이성과 공감으로 팀을 이끌어요.'},
+  'CD':{nick:'리듬 댄서',desc:'음악과 춤이 하나 된 퍼포머! 리듬에 몸을 맡기며 세상을 표현해요.'},
+  'CE':{nick:'아트 퍼포머',desc:'몸으로 그림을 그리는 예술가! 공간을 가득 채우는 퍼포먼스의 달인이에요.'},
+  'CF':{nick:'야생 탐험가',desc:'자연 속을 누비는 탐험가! 강인한 체력으로 대자연을 정복해요.'},
+  'CG':{nick:'수련자',desc:'몸과 마음을 함께 단련하는 수행자! 꾸준한 노력으로 경지에 오르는 인물이에요.'},
+  'CH':{nick:'팀의 에너지',desc:'팀에 활력을 불어넣는 에너지 뱅크! 함께할 때 빛나는 스포츠맨십의 소유자예요.'},
+  'DE':{nick:'비주얼 아티스트',desc:'소리를 그림으로, 그림을 소리로! 두 감각이 어우러진 환상적인 예술가예요.'},
+  'DF':{nick:'자연의 음유시인',desc:'자연의 소리를 음악으로 담는 시인! 새소리, 바람 소리에서 영감을 받아요.'},
+  'DG':{nick:'감성 아티스트',desc:'내면의 감정을 음악으로 토해내는 아티스트! 혼자만의 음악 세계가 깊어요.'},
+  'DH':{nick:'무대의 별',desc:'사람들을 하나로 묶는 퍼포머! 무대 위에서 빛나는 타고난 스타예요.'},
+  'EF':{nick:'자연 디자이너',desc:'자연에서 영감을 받는 디자이너! 꽃과 나무로 아름다운 세상을 만들어요.'},
+  'EG':{nick:'몽상가',desc:'혼자만의 세계를 가진 창조자! 상상 속 세계를 현실로 구현하는 몽상가예요.'},
+  'EH':{nick:'창의적 연결자',desc:'사람과 공간을 창의적으로 이어주는 다리! 모두를 위한 공간을 설계해요.'},
+  'FG':{nick:'생태 철학자',desc:'자연 속에서 삶의 의미를 찾는 현자! 자연과 인간의 관계를 깊이 생각해요.'},
+  'FH':{nick:'치유자',desc:'자연과 사람을 함께 돌보는 치유자! 따뜻한 마음으로 모두를 회복시켜요.'},
+  'GH':{nick:'공감 멘토',desc:'깊은 자기이해를 바탕으로 타인을 돕는 멘토! 진심 어린 공감으로 마음을 어루만져요.'}
+};
+
+const CHAR_SVGS = {
+  'AB': `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><rect width="120" height="120" rx="16" fill="#E8F4FD"/><circle cx="60" cy="45" r="24" fill="#FDDCAE"/><ellipse cx="60" cy="26" rx="20" ry="12" fill="#4A3728"/><circle cx="52" cy="43" r="4.5" fill="white"/><circle cx="68" cy="43" r="4.5" fill="white"/><circle cx="52" cy="43" r="2.5" fill="#185FA5"/><circle cx="68" cy="43" r="2.5" fill="#185FA5"/><path d="M52 54 Q60 60 68 54" stroke="#c0724a" stroke-width="2" fill="none" stroke-linecap="round"/><rect x="46" y="36" width="28" height="4" rx="2" fill="#185FA5" opacity="0.6"/><rect x="35" y="70" width="50" height="32" rx="14" fill="#5B8DD9"/><rect x="20" y="76" width="15" height="10" rx="5" fill="#5B8DD9"/><rect x="85" y="76" width="15" height="10" rx="5" fill="#5B8DD9"/><rect x="38" y="102" width="16" height="16" rx="8" fill="#5B8DD9"/><rect x="66" y="102" width="16" height="16" rx="8" fill="#5B8DD9"/><rect x="78" y="30" width="26" height="18" rx="5" fill="#2C5F8A"/><text x="91" y="43" text-anchor="middle" font-size="11" fill="white" font-family="sans-serif">?!</text></svg>`,
+  'AC': `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><rect width="120" height="120" rx="16" fill="#FFF3E8"/><circle cx="60" cy="42" r="22" fill="#FDDCAE"/><ellipse cx="60" cy="25" rx="18" ry="11" fill="#C0392B"/><circle cx="52" cy="40" r="4" fill="white"/><circle cx="68" cy="40" r="4" fill="white"/><circle cx="52" cy="40" r="2" fill="#333"/><circle cx="68" cy="40" r="2" fill="#333"/><path d="M53 50 Q60 56 67 50" stroke="#c0724a" stroke-width="2" fill="none" stroke-linecap="round"/><rect x="37" y="65" width="46" height="28" rx="12" fill="#E84040"/><line x1="18" y1="72" x2="37" y2="74" stroke="#E84040" stroke-width="8" stroke-linecap="round"/><line x1="83" y1="74" x2="102" y2="68" stroke="#E84040" stroke-width="8" stroke-linecap="round"/><rect x="40" y="93" width="14" height="20" rx="7" fill="#E84040"/><rect x="66" y="93" width="14" height="20" rx="7" fill="#E84040"/><text x="18" y="106" font-size="14" fill="#E84040">♪</text><text x="96" y="58" font-size="13" fill="#E84040">♪</text></svg>`,
+  'AD': `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><rect width="120" height="120" rx="16" fill="#1A1A3E"/><circle cx="22" cy="22" r="4" fill="white" opacity="0.8"/><circle cx="95" cy="15" r="3" fill="white" opacity="0.6"/><circle cx="60" cy="44" r="22" fill="#FDDCAE"/><path d="M42 30 Q60 20 78 30" stroke="#6B4226" stroke-width="5" fill="none"/><circle cx="52" cy="42" r="4" fill="white"/><circle cx="68" cy="42" r="4" fill="white"/><circle cx="52" cy="42" r="2" fill="#333"/><circle cx="68" cy="42" r="2" fill="#333"/><path d="M52 52 Q60 58 68 52" stroke="#c0724a" stroke-width="2" fill="none" stroke-linecap="round"/><rect x="37" y="67" width="46" height="30" rx="14" fill="#7B5EA7"/><line x1="18" y1="78" x2="37" y2="74" stroke="#7B5EA7" stroke-width="8" stroke-linecap="round"/><line x1="83" y1="74" x2="102" y2="80" stroke="#7B5EA7" stroke-width="8" stroke-linecap="round"/><rect x="40" y="97" width="14" height="20" rx="7" fill="#7B5EA7"/><rect x="66" y="97" width="14" height="20" rx="7" fill="#7B5EA7"/><text x="22" y="108" font-size="14" fill="#FFD700">♪</text></svg>`,
+  'AE': `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><rect width="120" height="120" rx="16" fill="#E8F5F0"/><rect x="8" y="80" width="104" height="36" rx="6" fill="#A8D5B5"/><rect x="16" y="46" width="38" height="42" rx="5" fill="white" stroke="#ccc" stroke-width="1.5"/><text x="35" y="72" text-anchor="middle" font-size="11" fill="#52B788" font-family="sans-serif" font-weight="bold">글쓰기</text><circle cx="80" cy="40" r="22" fill="#FDDCAE"/><ellipse cx="80" cy="23" rx="19" ry="12" fill="#C0392B"/><circle cx="72" cy="38" r="4" fill="white"/><circle cx="88" cy="38" r="4" fill="white"/><circle cx="72" cy="38" r="2" fill="#333"/><circle cx="88" cy="38" r="2" fill="#333"/><path d="M73 49 Q80 55 87 49" stroke="#c0724a" stroke-width="2" fill="none" stroke-linecap="round"/><rect x="58" y="63" width="44" height="28" rx="12" fill="#52B788"/><line x1="38" y1="72" x2="58" y2="72" stroke="#52B788" stroke-width="8" stroke-linecap="round"/><rect x="62" y="91" width="14" height="20" rx="7" fill="#52B788"/><rect x="86" y="91" width="14" height="20" rx="7" fill="#52B788"/></svg>`,
+  'AF': `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><rect width="120" height="120" rx="16" fill="#E8F5E9"/><rect x="0" y="94" width="120" height="26" rx="6" fill="#5D8A5E"/><polygon points="22,94 32,60 42,94" fill="#2E7D32"/><polygon points="75,94 88,52 101,94" fill="#388E3C"/><circle cx="60" cy="42" r="22" fill="#FDDCAE"/><rect x="44" y="22" width="32" height="16" rx="5" fill="#5D4037"/><rect x="40" y="28" width="40" height="8" rx="4" fill="#795548"/><circle cx="52" cy="40" r="4" fill="white"/><circle cx="68" cy="40" r="4" fill="white"/><circle cx="52" cy="40" r="2" fill="#333"/><circle cx="68" cy="40" r="2" fill="#333"/><path d="M53 51 Q60 57 67 51" stroke="#c0724a" stroke-width="2" fill="none" stroke-linecap="round"/><rect x="37" y="65" width="46" height="28" rx="12" fill="#795548"/><line x1="18" y1="74" x2="37" y2="74" stroke="#795548" stroke-width="8" stroke-linecap="round"/><line x1="83" y1="74" x2="102" y2="80" stroke="#795548" stroke-width="8" stroke-linecap="round"/><rect x="40" y="93" width="14" height="20" rx="7" fill="#795548"/><rect x="66" y="93" width="14" height="20" rx="7" fill="#795548"/></svg>`,
+  'AG': `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><rect width="120" height="120" rx="16" fill="#1C2E4A"/><circle cx="98" cy="18" r="12" fill="#FFF9C4"/><circle cx="90" cy="18" r="12" fill="#1C2E4A"/><circle cx="22" cy="30" r="3" fill="white" opacity="0.6"/><circle cx="60" cy="44" r="22" fill="#FDDCAE"/><path d="M42 30 Q60 22 78 30" fill="#888" stroke="#888" stroke-width="6"/><circle cx="52" cy="42" r="4" fill="white"/><circle cx="68" cy="42" r="4" fill="white"/><circle cx="52" cy="42" r="2" fill="#333"/><circle cx="68" cy="42" r="2" fill="#333"/><path d="M53 52 Q60 56 67 52" stroke="#c0724a" stroke-width="2" fill="none" stroke-linecap="round"/><rect x="37" y="67" width="46" height="32" rx="14" fill="#4A6FA5"/><line x1="18" y1="78" x2="37" y2="76" stroke="#4A6FA5" stroke-width="8" stroke-linecap="round"/><line x1="83" y1="76" x2="102" y2="78" stroke="#4A6FA5" stroke-width="8" stroke-linecap="round"/><rect x="40" y="99" width="14" height="18" rx="7" fill="#4A6FA5"/><rect x="66" y="99" width="14" height="18" rx="7" fill="#4A6FA5"/></svg>`,
+  'AH': `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><rect width="120" height="120" rx="16" fill="#FFF0EC"/><circle cx="60" cy="30" r="16" fill="#FDDCAE"/><ellipse cx="60" cy="18" rx="14" ry="9" fill="#5D4037"/><circle cx="54" cy="29" r="3" fill="white"/><circle cx="66" cy="29" r="3" fill="white"/><circle cx="54" cy="29" r="1.5" fill="#333"/><circle cx="66" cy="29" r="1.5" fill="#333"/><path d="M55 37 Q60 42 65 37" stroke="#c0724a" stroke-width="1.8" fill="none" stroke-linecap="round"/><rect x="44" y="47" width="32" height="22" rx="10" fill="#E07A5F"/><line x1="28" y1="54" x2="44" y2="54" stroke="#E07A5F" stroke-width="7" stroke-linecap="round"/><line x1="76" y1="54" x2="92" y2="54" stroke="#E07A5F" stroke-width="7" stroke-linecap="round"/><rect x="47" y="69" width="10" height="16" rx="5" fill="#E07A5F"/><rect x="63" y="69" width="10" height="16" rx="5" fill="#E07A5F"/><circle cx="24" cy="56" r="14" fill="#FDDCAE"/><ellipse cx="24" cy="46" rx="11" ry="7" fill="#F4A261"/><circle cx="19" cy="55" r="2.5" fill="white"/><circle cx="29" cy="55" r="2.5" fill="white"/><circle cx="19" cy="55" r="1.2" fill="#333"/><circle cx="29" cy="55" r="1.2" fill="#333"/><path d="M20 61 Q24 65 28 61" stroke="#c0724a" stroke-width="1.5" fill="none" stroke-linecap="round"/><rect x="11" y="70" width="26" height="18" rx="8" fill="#F4A261"/><rect x="14" y="88" width="8" height="14" rx="4" fill="#F4A261"/><rect x="25" y="88" width="8" height="14" rx="4" fill="#F4A261"/><circle cx="96" cy="56" r="14" fill="#FDDCAE"/><ellipse cx="96" cy="46" rx="11" ry="7" fill="#2196F3"/><circle cx="91" cy="55" r="2.5" fill="white"/><circle cx="101" cy="55" r="2.5" fill="white"/><circle cx="91" cy="55" r="1.2" fill="#333"/><circle cx="101" cy="55" r="1.2" fill="#333"/><path d="M92 61 Q96 65 100 61" stroke="#c0724a" stroke-width="1.5" fill="none" stroke-linecap="round"/><rect x="83" y="70" width="26" height="18" rx="8" fill="#2196F3"/><rect x="86" y="88" width="8" height="14" rx="4" fill="#2196F3"/><rect x="97" y="88" width="8" height="14" rx="4" fill="#2196F3"/><rect x="40" y="100" width="16" height="8" rx="4" fill="#E07A5F" opacity="0.7"/><rect x="64" y="100" width="16" height="8" rx="4" fill="#2196F3" opacity="0.7"/><text x="48" y="107" text-anchor="middle" font-size="7" fill="white" font-family="sans-serif">안녕</text><text x="72" y="107" text-anchor="middle" font-size="7" fill="white" font-family="sans-serif">반가워</text></svg>`,
+  'BC': `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><rect width="120" height="120" rx="16" fill="#ECEEF8"/><rect x="8" y="76" width="50" height="40" rx="3" fill="#9FA8DA"/><rect x="12" y="80" width="10" height="10" rx="2" fill="#5C6BC0"/><rect x="26" y="80" width="10" height="10" rx="2" fill="#FAFAFA"/><rect x="40" y="80" width="10" height="10" rx="2" fill="#5C6BC0"/><rect x="12" y="94" width="10" height="10" rx="2" fill="#FAFAFA"/><rect x="26" y="94" width="10" height="10" rx="2" fill="#5C6BC0"/><rect x="40" y="94" width="10" height="10" rx="2" fill="#FAFAFA"/><circle cx="80" cy="42" r="22" fill="#FDDCAE"/><ellipse cx="80" cy="25" rx="19" ry="12" fill="#333"/><circle cx="72" cy="40" r="4" fill="white"/><circle cx="88" cy="40" r="4" fill="white"/><circle cx="72" cy="40" r="2" fill="#333"/><circle cx="88" cy="40" r="2" fill="#333"/><path d="M73 51 Q80 57 87 51" stroke="#c0724a" stroke-width="2" fill="none" stroke-linecap="round"/><rect x="58" y="65" width="44" height="28" rx="12" fill="#5C6BC0"/><line x1="36" y1="72" x2="58" y2="72" stroke="#5C6BC0" stroke-width="8" stroke-linecap="round"/><rect x="62" y="93" width="14" height="22" rx="7" fill="#5C6BC0"/><rect x="86" y="93" width="14" height="22" rx="7" fill="#5C6BC0"/><line x1="102" y1="72" x2="80" y2="72" stroke="#5C6BC0" stroke-width="8" stroke-linecap="round"/></svg>`,
+  'BD': `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><rect width="120" height="120" rx="16" fill="#F5E8FA"/><rect x="8" y="72" width="44" height="44" rx="5" fill="white" stroke="#ddd" stroke-width="1.5"/><line x1="12" y1="82" x2="48" y2="82" stroke="#AB47BC" stroke-width="1.5"/><line x1="12" y1="90" x2="48" y2="90" stroke="#AB47BC" stroke-width="1.5"/><text x="30" y="110" text-anchor="middle" font-size="9" fill="#AB47BC" font-family="sans-serif">E=mc²</text><circle cx="80" cy="42" r="22" fill="#FDDCAE"/><ellipse cx="80" cy="25" rx="19" ry="12" fill="#5D4037"/><circle cx="72" cy="40" r="4" fill="white"/><circle cx="88" cy="40" r="4" fill="white"/><circle cx="72" cy="40" r="2" fill="#333"/><circle cx="88" cy="40" r="2" fill="#333"/><path d="M73 51 Q80 57 87 51" stroke="#c0724a" stroke-width="2" fill="none" stroke-linecap="round"/><rect x="58" y="65" width="44" height="28" rx="12" fill="#AB47BC"/><line x1="36" y1="72" x2="58" y2="72" stroke="#AB47BC" stroke-width="8" stroke-linecap="round"/><rect x="62" y="93" width="14" height="22" rx="7" fill="#AB47BC"/><rect x="86" y="93" width="14" height="22" rx="7" fill="#AB47BC"/><line x1="102" y1="72" x2="80" y2="72" stroke="#AB47BC" stroke-width="8" stroke-linecap="round"/><text x="100" y="52" font-size="13" fill="#AB47BC">♪</text></svg>`,
+  'BE': `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><rect width="120" height="120" rx="16" fill="#E1F4FC"/><rect x="6" y="62" width="56" height="54" rx="5" fill="#B3E5FC"/><line x1="12" y1="74" x2="58" y2="74" stroke="#0288D1" stroke-width="2"/><polygon points="22,112 30,98 38,112" fill="#0288D1" opacity="0.7"/><circle cx="88" cy="40" r="22" fill="#FDDCAE"/><ellipse cx="88" cy="23" rx="19" ry="12" fill="#1565C0"/><circle cx="80" cy="38" r="4" fill="white"/><circle cx="96" cy="38" r="4" fill="white"/><circle cx="80" cy="38" r="2" fill="#333"/><circle cx="96" cy="38" r="2" fill="#333"/><path d="M81 50 Q88 56 95 50" stroke="#c0724a" stroke-width="2" fill="none" stroke-linecap="round"/><rect x="66" y="63" width="44" height="28" rx="12" fill="#0288D1"/><line x1="44" y1="70" x2="66" y2="70" stroke="#0288D1" stroke-width="8" stroke-linecap="round"/><rect x="70" y="91" width="14" height="22" rx="7" fill="#0288D1"/><rect x="94" y="91" width="14" height="22" rx="7" fill="#0288D1"/><line x1="110" y1="70" x2="88" y2="70" stroke="#0288D1" stroke-width="8" stroke-linecap="round"/></svg>`,
+  'BF': `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><rect width="120" height="120" rx="16" fill="#E8F5E9"/><polygon points="12,116 22,82 32,116" fill="#388E3C"/><polygon points="28,116 40,74 52,116" fill="#2E7D32"/><circle cx="80" cy="40" r="22" fill="#FDDCAE"/><ellipse cx="80" cy="23" rx="19" ry="12" fill="#1B5E20"/><circle cx="72" cy="38" r="4" fill="white"/><circle cx="88" cy="38" r="4" fill="white"/><circle cx="72" cy="38" r="2" fill="#333"/><circle cx="88" cy="38" r="2" fill="#333"/><path d="M73 51 Q80 57 87 51" stroke="#c0724a" stroke-width="2" fill="none" stroke-linecap="round"/><rect x="58" y="63" width="44" height="28" rx="12" fill="#2E7D32"/><line x1="36" y1="70" x2="58" y2="70" stroke="#2E7D32" stroke-width="8" stroke-linecap="round"/><rect x="62" y="91" width="14" height="22" rx="7" fill="#2E7D32"/><rect x="86" y="91" width="14" height="22" rx="7" fill="#2E7D32"/><line x1="102" y1="70" x2="80" y2="70" stroke="#2E7D32" stroke-width="8" stroke-linecap="round"/></svg>`,
+  'BG': `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><rect width="120" height="120" rx="16" fill="#1A2A3A"/><circle cx="30" cy="22" r="3" fill="white" opacity="0.5"/><circle cx="60" cy="44" r="22" fill="#FDDCAE"/><ellipse cx="60" cy="27" rx="20" ry="12" fill="#37474F"/><circle cx="52" cy="42" r="4" fill="white"/><circle cx="68" cy="42" r="4" fill="white"/><circle cx="52" cy="42" r="2" fill="#333"/><circle cx="68" cy="42" r="2" fill="#333"/><path d="M53 54 Q60 60 67 54" stroke="#c0724a" stroke-width="2" fill="none" stroke-linecap="round"/><rect x="37" y="67" width="46" height="30" rx="14" fill="#546E7A"/><line x1="18" y1="76" x2="37" y2="76" stroke="#546E7A" stroke-width="8" stroke-linecap="round"/><line x1="83" y1="76" x2="102" y2="76" stroke="#546E7A" stroke-width="8" stroke-linecap="round"/><rect x="40" y="97" width="14" height="20" rx="7" fill="#546E7A"/><rect x="66" y="97" width="14" height="20" rx="7" fill="#546E7A"/></svg>`,
+  'BH': `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><rect width="120" height="120" rx="16" fill="#E0F5F5"/><rect x="6" y="72" width="44" height="44" rx="5" fill="white" stroke="#B2DFDB" stroke-width="1.5"/><rect x="10" y="78" width="12" height="12" rx="3" fill="#00838F" opacity="0.8"/><rect x="28" y="78" width="12" height="12" rx="3" fill="#00838F" opacity="0.5"/><rect x="10" y="96" width="12" height="12" rx="3" fill="#00838F" opacity="0.5"/><rect x="28" y="96" width="12" height="12" rx="3" fill="#00838F" opacity="0.8"/><circle cx="84" cy="40" r="22" fill="#FDDCAE"/><ellipse cx="84" cy="23" rx="19" ry="12" fill="#00574B"/><circle cx="76" cy="38" r="4" fill="white"/><circle cx="92" cy="38" r="4" fill="white"/><circle cx="76" cy="38" r="2" fill="#333"/><circle cx="92" cy="38" r="2" fill="#333"/><path d="M77 50 Q84 56 91 50" stroke="#c0724a" stroke-width="2" fill="none" stroke-linecap="round"/><rect x="62" y="63" width="44" height="30" rx="14" fill="#00838F"/><line x1="40" y1="72" x2="62" y2="72" stroke="#00838F" stroke-width="8" stroke-linecap="round"/><rect x="66" y="93" width="14" height="22" rx="7" fill="#00838F"/><rect x="90" y="93" width="14" height="22" rx="7" fill="#00838F"/><line x1="106" y1="72" x2="84" y2="72" stroke="#00838F" stroke-width="8" stroke-linecap="round"/></svg>`,
+  'CD': `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><rect width="120" height="120" rx="16" fill="#FDE8F0"/><circle cx="60" cy="40" r="22" fill="#FDDCAE"/><ellipse cx="60" cy="23" rx="18" ry="11" fill="#AD1457"/><circle cx="52" cy="38" r="4" fill="white"/><circle cx="68" cy="38" r="4" fill="white"/><circle cx="52" cy="38" r="2" fill="#333"/><circle cx="68" cy="38" r="2" fill="#333"/><path d="M53 49 Q60 55 67 49" stroke="#c0724a" stroke-width="2" fill="none" stroke-linecap="round"/><rect x="37" y="63" width="46" height="28" rx="12" fill="#F06292"/><line x1="18" y1="67" x2="37" y2="72" stroke="#F06292" stroke-width="8" stroke-linecap="round"/><line x1="83" y1="72" x2="102" y2="67" stroke="#F06292" stroke-width="8" stroke-linecap="round"/><rect x="40" y="91" width="14" height="22" rx="7" fill="#F06292"/><rect x="66" y="91" width="14" height="22" rx="7" fill="#F06292"/><line x1="18" y1="67" x2="12" y2="54" stroke="#F06292" stroke-width="7" stroke-linecap="round"/><line x1="102" y1="67" x2="108" y2="54" stroke="#F06292" stroke-width="7" stroke-linecap="round"/><text x="16" y="112" font-size="14" fill="#F06292">♪</text><text x="92" y="108" font-size="16" fill="#F06292">♫</text></svg>`,
+  'CE': `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><rect width="120" height="120" rx="16" fill="#F3EEFA"/><circle cx="60" cy="44" r="22" fill="#FDDCAE"/><ellipse cx="60" cy="27" rx="18" ry="11" fill="#6A1B9A"/><circle cx="52" cy="42" r="4" fill="white"/><circle cx="68" cy="42" r="4" fill="white"/><circle cx="52" cy="42" r="2" fill="#333"/><circle cx="68" cy="42" r="2" fill="#333"/><path d="M53 53 Q60 59 67 53" stroke="#c0724a" stroke-width="2" fill="none" stroke-linecap="round"/><rect x="38" y="67" width="44" height="24" rx="12" fill="#7E57C2"/><line x1="20" y1="63" x2="38" y2="74" stroke="#7E57C2" stroke-width="8" stroke-linecap="round"/><line x1="82" y1="74" x2="100" y2="63" stroke="#7E57C2" stroke-width="8" stroke-linecap="round"/><rect x="41" y="91" width="14" height="22" rx="7" fill="#7E57C2"/><rect x="65" y="91" width="14" height="22" rx="7" fill="#7E57C2"/><line x1="20" y1="63" x2="14" y2="50" stroke="#7E57C2" stroke-width="6" stroke-linecap="round"/><line x1="100" y1="63" x2="106" y2="50" stroke="#7E57C2" stroke-width="6" stroke-linecap="round"/></svg>`,
+  'CF': `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><rect width="120" height="120" rx="16" fill="#E8F5E9"/><polygon points="0,120 60,46 120,120" fill="#558B2F" opacity="0.3"/><polygon points="8,120 52,68 96,120" fill="#33691E" opacity="0.5"/><circle cx="60" cy="40" r="22" fill="#FDDCAE"/><rect x="45" y="20" width="30" height="15" rx="5" fill="#5D4037"/><rect x="41" y="26" width="38" height="8" rx="4" fill="#795548"/><circle cx="52" cy="38" r="4" fill="white"/><circle cx="68" cy="38" r="4" fill="white"/><circle cx="52" cy="38" r="2" fill="#333"/><circle cx="68" cy="38" r="2" fill="#333"/><path d="M53 49 Q60 55 67 49" stroke="#c0724a" stroke-width="2" fill="none" stroke-linecap="round"/><rect x="37" y="63" width="46" height="30" rx="14" fill="#795548"/><line x1="18" y1="72" x2="37" y2="72" stroke="#795548" stroke-width="8" stroke-linecap="round"/><line x1="83" y1="72" x2="102" y2="80" stroke="#795548" stroke-width="8" stroke-linecap="round"/><rect x="40" y="93" width="14" height="22" rx="7" fill="#795548"/><rect x="66" y="93" width="14" height="22" rx="7" fill="#795548"/></svg>`,
+  'CG': `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><rect width="120" height="120" rx="16" fill="#ECEFF1"/><circle cx="60" cy="42" r="22" fill="#FDDCAE"/><ellipse cx="60" cy="25" rx="20" ry="12" fill="#263238"/><circle cx="52" cy="40" r="4" fill="white"/><circle cx="68" cy="40" r="4" fill="white"/><circle cx="52" cy="40" r="2" fill="#333"/><circle cx="68" cy="40" r="2" fill="#333"/><path d="M53 51 Q60 57 67 51" stroke="#c0724a" stroke-width="2" fill="none" stroke-linecap="round"/><rect x="38" y="65" width="44" height="26" rx="12" fill="#546E7A"/><line x1="20" y1="70" x2="38" y2="76" stroke="#546E7A" stroke-width="8" stroke-linecap="round"/><line x1="82" y1="76" x2="100" y2="70" stroke="#546E7A" stroke-width="8" stroke-linecap="round"/><line x1="20" y1="70" x2="14" y2="56" stroke="#546E7A" stroke-width="7" stroke-linecap="round"/><line x1="100" y1="70" x2="106" y2="56" stroke="#546E7A" stroke-width="7" stroke-linecap="round"/><rect x="42" y="91" width="15" height="28" rx="7" fill="#546E7A"/><rect x="63" y="91" width="15" height="28" rx="7" fill="#546E7A"/></svg>`,
+  'CH': `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><rect width="120" height="120" rx="16" fill="#FFF3E0"/><circle cx="38" cy="44" r="18" fill="#FDDCAE"/><ellipse cx="38" cy="30" rx="15" ry="10" fill="#E65100"/><circle cx="32" cy="42" r="3" fill="white"/><circle cx="44" cy="42" r="3" fill="white"/><circle cx="32" cy="42" r="1.5" fill="#333"/><circle cx="44" cy="42" r="1.5" fill="#333"/><path d="M33 50 Q38 55 43 50" stroke="#c0724a" stroke-width="1.8" fill="none" stroke-linecap="round"/><rect x="22" y="63" width="32" height="22" rx="10" fill="#FF7043"/><line x1="8" y1="68" x2="22" y2="72" stroke="#FF7043" stroke-width="7" stroke-linecap="round"/><rect x="26" y="85" width="10" height="20" rx="5" fill="#FF7043"/><rect x="38" y="85" width="10" height="20" rx="5" fill="#FF7043"/><circle cx="82" cy="44" r="18" fill="#8D5524"/><ellipse cx="82" cy="30" rx="15" ry="10" fill="#1A237E"/><circle cx="76" cy="42" r="3" fill="white"/><circle cx="88" cy="42" r="3" fill="white"/><circle cx="76" cy="42" r="1.5" fill="#eee"/><circle cx="88" cy="42" r="1.5" fill="#eee"/><path d="M77 50 Q82 55 87 50" stroke="#a0522d" stroke-width="1.8" fill="none" stroke-linecap="round"/><rect x="66" y="63" width="32" height="22" rx="10" fill="#1565C0"/><line x1="98" y1="68" x2="112" y2="68" stroke="#1565C0" stroke-width="7" stroke-linecap="round"/><rect x="70" y="85" width="10" height="20" rx="5" fill="#1565C0"/><rect x="82" y="85" width="10" height="20" rx="5" fill="#1565C0"/></svg>`,
+  'DE': `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><rect width="120" height="120" rx="16" fill="#F3E5F5"/><rect x="12" y="72" width="96" height="44" rx="5" fill="#CE93D8" opacity="0.3"/><circle cx="60" cy="40" r="22" fill="#FDDCAE"/><ellipse cx="60" cy="23" rx="19" ry="12" fill="#4A148C"/><circle cx="52" cy="38" r="4" fill="white"/><circle cx="68" cy="38" r="4" fill="white"/><circle cx="52" cy="38" r="2" fill="#333"/><circle cx="68" cy="38" r="2" fill="#333"/><path d="M53 49 Q60 55 67 49" stroke="#c0724a" stroke-width="2" fill="none" stroke-linecap="round"/><rect x="37" y="63" width="46" height="28" rx="12" fill="#8E24AA"/><line x1="18" y1="70" x2="37" y2="72" stroke="#8E24AA" stroke-width="8" stroke-linecap="round"/><line x1="83" y1="72" x2="102" y2="70" stroke="#8E24AA" stroke-width="8" stroke-linecap="round"/><rect x="40" y="91" width="14" height="22" rx="7" fill="#8E24AA"/><rect x="66" y="91" width="14" height="22" rx="7" fill="#8E24AA"/><text x="26" y="114" font-size="13" fill="#CE93D8">♪</text></svg>`,
+  'DF': `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><rect width="120" height="120" rx="16" fill="#E8F5E9"/><rect x="0" y="96" width="120" height="24" rx="6" fill="#388E3C"/><polygon points="8,96 18,64 28,96" fill="#2E7D32"/><circle cx="60" cy="38" r="22" fill="#FDDCAE"/><path d="M42 26 Q60 16 78 26" stroke="#5D4037" stroke-width="6" fill="none"/><circle cx="52" cy="36" r="4" fill="white"/><circle cx="68" cy="36" r="4" fill="white"/><circle cx="52" cy="36" r="2" fill="#333"/><circle cx="68" cy="36" r="2" fill="#333"/><path d="M53 47 Q60 53 67 47" stroke="#c0724a" stroke-width="2" fill="none" stroke-linecap="round"/><rect x="37" y="61" width="46" height="28" rx="12" fill="#388E3C"/><line x1="18" y1="68" x2="37" y2="68" stroke="#388E3C" stroke-width="8" stroke-linecap="round"/><line x1="83" y1="68" x2="102" y2="68" stroke="#388E3C" stroke-width="8" stroke-linecap="round"/><rect x="40" y="89" width="14" height="22" rx="7" fill="#388E3C"/><rect x="66" y="89" width="14" height="22" rx="7" fill="#388E3C"/><text x="12" y="64" font-size="14" fill="#388E3C">♪</text></svg>`,
+  'DG': `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><rect width="120" height="120" rx="16" fill="#EDE7F6"/><rect x="10" y="78" width="50" height="38" rx="5" fill="#D1C4E9"/><rect x="10" y="80" width="8" height="34" rx="4" fill="#512DA8"/><circle cx="82" cy="40" r="22" fill="#FDDCAE"/><ellipse cx="82" cy="23" rx="19" ry="12" fill="#311B92"/><circle cx="74" cy="38" r="4" fill="white"/><circle cx="90" cy="38" r="4" fill="white"/><circle cx="74" cy="38" r="2" fill="#333"/><circle cx="90" cy="38" r="2" fill="#333"/><path d="M75 49 Q82 55 89 49" stroke="#c0724a" stroke-width="2" fill="none" stroke-linecap="round"/><rect x="60" y="63" width="44" height="28" rx="12" fill="#5E35B1"/><line x1="38" y1="70" x2="60" y2="72" stroke="#5E35B1" stroke-width="8" stroke-linecap="round"/><rect x="64" y="91" width="14" height="22" rx="7" fill="#5E35B1"/><rect x="88" y="91" width="14" height="22" rx="7" fill="#5E35B1"/><line x1="104" y1="70" x2="82" y2="72" stroke="#5E35B1" stroke-width="8" stroke-linecap="round"/></svg>`,
+  'DH': `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><rect width="120" height="120" rx="16" fill="#FFFDE7"/><polygon points="60,8 68,32 94,32 74,48 82,72 60,58 38,72 46,48 26,32 52,32" fill="#F9A825" opacity="0.8"/><circle cx="60" cy="56" r="22" fill="#FDDCAE"/><ellipse cx="60" cy="39" rx="18" ry="11" fill="#E65100"/><circle cx="52" cy="54" r="4" fill="white"/><circle cx="68" cy="54" r="4" fill="white"/><circle cx="52" cy="54" r="2" fill="#333"/><circle cx="68" cy="54" r="2" fill="#333"/><path d="M53 65 Q60 71 67 65" stroke="#c0724a" stroke-width="2" fill="none" stroke-linecap="round"/><rect x="37" y="79" width="46" height="26" rx="12" fill="#FB8C00"/><line x1="18" y1="84" x2="37" y2="86" stroke="#FB8C00" stroke-width="8" stroke-linecap="round"/><line x1="83" y1="86" x2="102" y2="84" stroke="#FB8C00" stroke-width="8" stroke-linecap="round"/><rect x="40" y="105" width="14" height="14" rx="7" fill="#FB8C00"/><rect x="66" y="105" width="14" height="14" rx="7" fill="#FB8C00"/></svg>`,
+  'EF': `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><rect width="120" height="120" rx="16" fill="#E8F5E9"/><circle cx="26" cy="96" r="16" fill="#388E3C"/><rect x="23" y="80" width="6" height="16" rx="3" fill="#5D4037"/><ellipse cx="26" cy="78" rx="13" ry="8" fill="#66BB6A"/><circle cx="54" cy="38" r="22" fill="#FDDCAE"/><rect x="40" y="20" width="28" height="14" rx="5" fill="#795548"/><rect x="36" y="26" width="36" height="7" rx="3.5" fill="#A1887F"/><circle cx="46" cy="36" r="4" fill="white"/><circle cx="62" cy="36" r="4" fill="white"/><circle cx="46" cy="36" r="2" fill="#333"/><circle cx="62" cy="36" r="2" fill="#333"/><path d="M47 47 Q54 53 61 47" stroke="#c0724a" stroke-width="2" fill="none" stroke-linecap="round"/><rect x="32" y="61" width="44" height="28" rx="12" fill="#388E3C"/><line x1="14" y1="68" x2="32" y2="68" stroke="#388E3C" stroke-width="8" stroke-linecap="round"/><line x1="76" y1="68" x2="95" y2="68" stroke="#388E3C" stroke-width="8" stroke-linecap="round"/><rect x="36" y="89" width="13" height="20" rx="6" fill="#388E3C"/><rect x="58" y="89" width="13" height="20" rx="6" fill="#388E3C"/></svg>`,
+  'EG': `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><rect width="120" height="120" rx="16" fill="#EDE7F6"/><circle cx="38" cy="88" r="15" fill="#E1BEE7" opacity="0.6"/><circle cx="82" cy="82" r="20" fill="#D1C4E9" opacity="0.5"/><circle cx="60" cy="42" r="22" fill="#FDDCAE"/><ellipse cx="60" cy="25" rx="19" ry="12" fill="#4A148C"/><circle cx="52" cy="40" r="4" fill="white"/><circle cx="68" cy="40" r="4" fill="white"/><circle cx="52" cy="40" r="2" fill="#333"/><circle cx="68" cy="40" r="2" fill="#333"/><path d="M53 51 Q60 57 67 51" stroke="#c0724a" stroke-width="2" fill="none" stroke-linecap="round"/><rect x="37" y="65" width="46" height="28" rx="12" fill="#7B1FA2"/><line x1="18" y1="74" x2="37" y2="74" stroke="#7B1FA2" stroke-width="8" stroke-linecap="round"/><line x1="83" y1="74" x2="102" y2="74" stroke="#7B1FA2" stroke-width="8" stroke-linecap="round"/><rect x="40" y="93" width="14" height="22" rx="7" fill="#7B1FA2"/><rect x="66" y="93" width="14" height="22" rx="7" fill="#7B1FA2"/></svg>`,
+  'EH': `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><rect width="120" height="120" rx="16" fill="#E3F2FD"/><line x1="15" y1="104" x2="105" y2="104" stroke="#0277BD" stroke-width="4.5"/><rect x="26" y="88" width="9" height="16" rx="1.5" fill="#0277BD"/><rect x="44" y="78" width="9" height="26" rx="1.5" fill="#01579B"/><rect x="67" y="78" width="9" height="26" rx="1.5" fill="#01579B"/><rect x="85" y="88" width="9" height="16" rx="1.5" fill="#0277BD"/><circle cx="60" cy="40" r="22" fill="#FDDCAE"/><ellipse cx="60" cy="23" rx="19" ry="12" fill="#01579B"/><circle cx="52" cy="38" r="4" fill="white"/><circle cx="68" cy="38" r="4" fill="white"/><circle cx="52" cy="38" r="2" fill="#333"/><circle cx="68" cy="38" r="2" fill="#333"/><path d="M53 49 Q60 55 67 49" stroke="#c0724a" stroke-width="2" fill="none" stroke-linecap="round"/><rect x="37" y="63" width="46" height="28" rx="12" fill="#0277BD"/><line x1="18" y1="70" x2="37" y2="70" stroke="#0277BD" stroke-width="8" stroke-linecap="round"/><line x1="83" y1="70" x2="102" y2="70" stroke="#0277BD" stroke-width="8" stroke-linecap="round"/><rect x="40" y="91" width="14" height="12" rx="6" fill="#0277BD"/><rect x="66" y="91" width="14" height="12" rx="6" fill="#0277BD"/></svg>`,
+  'FG': `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><rect width="120" height="120" rx="16" fill="#F1F8E9"/><rect x="44" y="56" width="9" height="40" rx="4.5" fill="#5D4037"/><ellipse cx="48" cy="55" rx="27" ry="17" fill="#33691E" opacity="0.8"/><circle cx="72" cy="40" r="22" fill="#FDDCAE"/><path d="M52 28 Q72 20 92 28" stroke="#888" stroke-width="7" fill="#888"/><circle cx="64" cy="38" r="4" fill="white"/><circle cx="80" cy="38" r="4" fill="white"/><circle cx="64" cy="38" r="2" fill="#333"/><circle cx="80" cy="38" r="2" fill="#333"/><path d="M65 49 Q72 55 79 49" stroke="#c0724a" stroke-width="2" fill="none" stroke-linecap="round"/><rect x="50" y="63" width="44" height="28" rx="12" fill="#33691E"/><line x1="28" y1="70" x2="50" y2="70" stroke="#33691E" stroke-width="8" stroke-linecap="round"/><rect x="54" y="91" width="14" height="22" rx="7" fill="#33691E"/><rect x="78" y="91" width="14" height="22" rx="7" fill="#33691E"/><line x1="94" y1="70" x2="112" y2="70" stroke="#33691E" stroke-width="8" stroke-linecap="round"/></svg>`,
+  'FH': `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><rect width="120" height="120" rx="16" fill="#E0F2F1"/><circle cx="90" cy="90" r="18" fill="#FDDCAE"/><ellipse cx="90" cy="77" rx="14" ry="9" fill="#795548"/><circle cx="84" cy="88" r="3" fill="white"/><circle cx="96" cy="88" r="3" fill="white"/><circle cx="84" cy="88" r="1.5" fill="#333"/><circle cx="96" cy="88" r="1.5" fill="#333"/><circle cx="48" cy="38" r="22" fill="#FDDCAE"/><ellipse cx="48" cy="21" rx="19" ry="12" fill="#004D40"/><circle cx="40" cy="36" r="4" fill="white"/><circle cx="56" cy="36" r="4" fill="white"/><circle cx="40" cy="36" r="2" fill="#333"/><circle cx="56" cy="36" r="2" fill="#333"/><path d="M41 47 Q48 53 55 47" stroke="#c0724a" stroke-width="2" fill="none" stroke-linecap="round"/><rect x="26" y="61" width="44" height="28" rx="12" fill="#00695C"/><line x1="8" y1="68" x2="26" y2="68" stroke="#00695C" stroke-width="8" stroke-linecap="round"/><line x1="70" y1="68" x2="88" y2="76" stroke="#00695C" stroke-width="8" stroke-linecap="round"/><rect x="30" y="89" width="14" height="22" rx="7" fill="#00695C"/><rect x="54" y="89" width="14" height="22" rx="7" fill="#00695C"/></svg>`,
+  'GH': `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><rect width="120" height="120" rx="16" fill="#FFEBEE"/><rect x="62" y="62" width="50" height="56" rx="9" fill="#FFCDD2"/><circle cx="88" cy="44" r="18" fill="#FDDCAE"/><ellipse cx="88" cy="30" rx="15" ry="10" fill="#B71C1C"/><circle cx="82" cy="42" r="3" fill="white"/><circle cx="94" cy="42" r="3" fill="white"/><circle cx="82" cy="42" r="1.5" fill="#333"/><circle cx="94" cy="42" r="1.5" fill="#333"/><path d="M83 50 Q88 55 93 50" stroke="#c0724a" stroke-width="1.8" fill="none" stroke-linecap="round"/><rect x="70" y="63" width="36" height="20" rx="9" fill="#C62828"/><line x1="50" y1="69" x2="70" y2="69" stroke="#C62828" stroke-width="6" stroke-linecap="round"/><rect x="74" y="83" width="11" height="22" rx="5" fill="#C62828"/><rect x="91" y="83" width="11" height="22" rx="5" fill="#C62828"/><circle cx="32" cy="48" r="18" fill="#FDDCAE"/><ellipse cx="32" cy="34" rx="15" ry="10" fill="#4A148C"/><circle cx="26" cy="46" r="3" fill="white"/><circle cx="38" cy="46" r="3" fill="white"/><circle cx="26" cy="46" r="1.5" fill="#333"/><circle cx="38" cy="46" r="1.5" fill="#333"/><path d="M27 53 Q32 57 37 53" stroke="#c0724a" stroke-width="1.8" fill="none" stroke-linecap="round"/><rect x="12" y="66" width="38" height="20" rx="9" fill="#880E4F"/><line x1="50" y1="73" x2="70" y2="71" stroke="#880E4F" stroke-width="5"/><rect x="16" y="86" width="11" height="22" rx="5" fill="#880E4F"/><rect x="33" y="86" width="11" height="22" rx="5" fill="#880E4F"/></svg>`
+};
+
+/* ══ 상태 ══ */
+let answers = {};
+let currentQ = 0;
+
+function initAnswers() {
+  KEYS.forEach(k => { answers[k] = Array(7).fill(undefined); });
+}
+
+/* ══ 화면 전환 ══ */
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+}
+
+/* ══ 검사 시작 ══ */
+function startTest() {
+  initAnswers();
+  currentQ = 0;
+  showScreen('test');
+  renderQ();
+}
+
+/* ══ 문항 렌더링
+   ③ 인터리브 방식:
+   currentQ 0~7  → 각 영역 1번 문항 (round=0)
+   currentQ 8~15 → 각 영역 2번 문항 (round=1) ...
+   sectionIdx = currentQ % 8
+   questionIdx = Math.floor(currentQ / 8)
+══ */
+function renderQ() {
+  const sectionIdx  = currentQ % 8;           // 0~7 → 영역 인덱스
+  const questionIdx = Math.floor(currentQ / 8); // 0~6 → 몇 번째 문항
+  const sec   = SECTIONS[sectionIdx];
+  const qText = sec.questions[questionIdx];
+  const saved = answers[sec.key][questionIdx];
+
+  /* ④ 진도율 */
+  const cur = currentQ + 1;
+  const pct = Math.round((currentQ / TOTAL) * 100);
+  document.getElementById('prog-cur').textContent  = cur;
+  document.getElementById('prog-pct').textContent  = pct + '%';
+  document.getElementById('prog-fill').style.width = pct + '%';
+
+  /* ⑥ 버튼 상태 */
+  document.getElementById('btn-prev').disabled = (currentQ === 0);
+  const nextBtn = document.getElementById('btn-next');
+  nextBtn.textContent = (currentQ === TOTAL - 1) ? '결과 보기 🎉' : '다음 →';
+  nextBtn.disabled    = (saved === undefined);
+
+  /* ⑦ 척도 버튼 */
+  const labelsHtml = SCORE_LABELS.map((lbl, si) => {
+    const val        = si + 1;
+    const isSelected = (saved === val);
+    const lines      = lbl.split('\n');
+    const selStyle   = isSelected
+      ? `background:${sec.color};border-color:${sec.color};color:white;`
+      : '';
+    return `<button class="score-btn${isSelected ? ' selected' : ''}"
+      style="${selStyle}"
+      onclick="selectScore('${sec.key}',${questionIdx},${val})">
+      <span class="s-num">${val}</span>
+      <span class="s-txt">${lines.join('<br>')}</span>
+    </button>`;
+  }).join('');
+
+  document.getElementById('question-content').innerHTML = `
+    <div class="question-card">
+      <div class="question-text">${qText}</div>
+      <div class="score-btns">${labelsHtml}</div>
+    </div>`;
+
+  window.scrollTo(0, 0);
+}
+
+/* ══ 점수 선택 ══ */
+function selectScore(key, questionIdx, score) {
+  answers[key][questionIdx] = score;
+  const sec = SECTIONS.find(s => s.key === key);
+
+  document.querySelectorAll('.score-btn').forEach((btn, idx) => {
+    const val = idx + 1;
+    if (val === score) {
+      btn.classList.add('selected');
+      btn.style.cssText = `background:${sec.color};border-color:${sec.color};color:white;`;
+    } else {
+      btn.classList.remove('selected');
+      btn.style.cssText = '';
+    }
+  });
+  document.getElementById('btn-next').disabled = false;
+
+  /* 자동 다음 이동 */
+  setTimeout(() => {
+    if (currentQ < TOTAL - 1) {
+      currentQ++;
+      renderQ();
+    } else {
+      showResult();
+    }
+  }, 300);
+}
+
+/* ══ 이전/다음 ══ */
+function nextQ() {
+  const sectionIdx  = currentQ % 8;
+  const questionIdx = Math.floor(currentQ / 8);
+  if (answers[SECTIONS[sectionIdx].key][questionIdx] === undefined) return;
+
+  if (currentQ < TOTAL - 1) {
+    currentQ++;
+    renderQ();
+  } else {
+    showResult();
+  }
+}
+
+function prevQ() {
+  if (currentQ > 0) { currentQ--; renderQ(); }
+}
+
+/* ══ 결과 ══ */
+function showResult() {
+  const scores = {};
+  KEYS.forEach(k => {
+    scores[k] = answers[k].reduce((a, b) => a + (b || 0), 0);
+  });
+
+  const sorted = [...KEYS].sort((a, b) => {
+    if (scores[b] !== scores[a]) return scores[b] - scores[a];
+    const pri = ['G','H','A','B','C','E','D','F'];
+    return pri.indexOf(a) - pri.indexOf(b);
+  });
+
+  const top2     = sorted.slice(0, 2).sort();
+  const comboKey = top2.join('');
+  const combo    = COMBOS[comboKey] || { nick:'나만의 천재', desc:'여러 지능이 고루 발달한 균형잡힌 인재예요!' };
+  const svgStr   = CHAR_SVGS[comboKey] || CHAR_SVGS['AH'];
+  const info1    = MI_INFO[top2[0]];
+  const info2    = MI_INFO[top2[1]];
+
+  const personCard = (key, info) => `
+    <div class="character-card" style="text-align:left">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <span style="font-size:28px">${SECTIONS[KEYS.indexOf(key)].emoji}</span>
+        <div>
+          <div style="font-weight:700;font-size:16px;color:${KEY_COLORS[key]}">${info.name}</div>
+          <div style="font-size:12px;color:#888">점수: ${scores[key]}점</div>
+        </div>
+      </div>
+      <div class="char-desc" style="margin-bottom:14px">${info.desc}</div>
+      <div style="font-size:12px;font-weight:700;color:#aaa;margin-bottom:8px;letter-spacing:1px">대표 인물</div>
+      <div class="people-row">
+        ${info.people.map(p=>`
+          <div class="person-chip">
+            <span class="p-icon">${p.icon}</span>
+            <div><div class="p-name">${p.name}</div><div class="p-role">${p.role}</div></div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+
+  document.getElementById('result-content').innerHTML = `
+    <div class="character-card">
+      <div class="char-svg-wrap">${svgStr}</div>
+      <div class="char-nickname">${combo.nick}</div>
+      <div class="char-combo-tags">
+        <span class="char-tag" style="background:${KEY_COLORS[top2[0]]}">${SECTIONS[KEYS.indexOf(top2[0])].emoji} ${info1.name}</span>
+        <span class="char-tag" style="background:${KEY_COLORS[top2[1]]}">${SECTIONS[KEYS.indexOf(top2[1])].emoji} ${info2.name}</span>
+      </div>
+      <div class="char-desc">${combo.desc}</div>
+    </div>
+    <div class="section-divider">강점 지능 상세</div>
+    ${personCard(top2[0], info1)}
+    ${personCard(top2[1], info2)}
+    <div class="chart-card">
+      <h3>📊 나의 8가지 지능 점수</h3>
+      <div class="chart-wrap"><canvas id="radarChart"></canvas></div>
+      <div class="scores-grid">
+        ${KEYS.map(k=>`
+          <div class="score-chip${top2.includes(k)?' top':''}">
+            <div class="sc-emoji">${SECTIONS[KEYS.indexOf(k)].emoji}</div>
+            <div class="sc-name">${MI_INFO[k].name.replace(' 지능','')}</div>
+            <div class="sc-score" style="color:${KEY_COLORS[k]}">${scores[k]}<span style="font-size:10px;color:#aaa;font-family:'Noto Sans KR',sans-serif;font-weight:400"> /35</span></div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+
+  showScreen('result');
+  window.scrollTo(0, 0);
+
+  setTimeout(() => {
+    const ctx = document.getElementById('radarChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'radar',
+      data: {
+        labels: KEYS.map(k => MI_INFO[k].name.replace(' 지능','')),
+        datasets: [{
+          data: KEYS.map(k => scores[k]),
+          backgroundColor: 'rgba(255,107,107,0.15)',
+          borderColor: '#FF6B6B', borderWidth: 2.5,
+          pointBackgroundColor: KEYS.map(k => KEY_COLORS[k]),
+          pointRadius: 6, pointHoverRadius: 8
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: {
+          r: {
+            min: 0, max: 35,
+            ticks: { stepSize: 7, display: false },
+            grid: { color: 'rgba(0,0,0,0.06)' },
+            angleLines: { color: 'rgba(0,0,0,0.08)' },
+            pointLabels: { font: { size: 11, family: 'Noto Sans KR' }, color: '#666' }
+          }
+        },
+        plugins: { legend: { display: false } }
+      }
+    });
+  }, 200);
+}
+
+function resetTest() {
+  answers  = {};
+  currentQ = 0;
+  showScreen('intro');
+  window.scrollTo(0, 0);
+}
+</script>
+</body>
+</html>
